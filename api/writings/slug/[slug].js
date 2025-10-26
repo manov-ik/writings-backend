@@ -19,13 +19,13 @@ module.exports = async (req, res) => {
   
   if (req.method === 'GET') {
     try {
-      const { id } = req.query;
+      const { slug } = req.query;
       
-      if (!id) {
-        return res.status(400).json({ error: 'ID is required' });
+      if (!slug) {
+        return res.status(400).json({ error: 'Slug is required' });
       }
       
-      const { rows } = await pool.query('SELECT * FROM writings WHERE id = $1', [id]);
+      const { rows } = await pool.query('SELECT * FROM writings WHERE slug = $1', [slug]);
       
       if (rows.length === 0) {
         return res.status(404).json({ error: 'Writing not found' });
