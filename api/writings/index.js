@@ -5,9 +5,16 @@ const pool = new Pool({
 });
 
 module.exports = async (req, res) => {
+  // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
 
   if (req.method === 'GET') {
     try {
@@ -16,9 +23,21 @@ module.exports = async (req, res) => {
         WHERE published = true 
         ORDER BY order_index ASC, created_at DESC
       `);
-      res.json({ writings: rows, total: rows.length, page: 1, limit: 100 });
+      
+      res.status(200).json({ 
+        writings: rows, 
+        total: rows.length, 
+        page: 1, 
+        limit: 100 
+      });
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      console.error('Database error:', error);
+      res.status(500).json({ 
+        error: 'Database connection failed',
+        message: error.message 
+      });
     }
+  } else {
+    res.status(405).json({ error: 'Method not allowed' });
   }
 };

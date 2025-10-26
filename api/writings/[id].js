@@ -5,20 +5,40 @@ const pool = new Pool({
 });
 
 module.exports = async (req, res) => {
+  // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
   
   if (req.method === 'GET') {
     try {
       const { id } = req.query;
+      
+      if (!id) {
+        return res.status(400).json({ error: 'ID is required' });
+      }
+      
       const { rows } = await pool.query('SELECT * FROM writings WHERE id = $1', [id]);
       
       if (rows.length === 0) {
         return res.status(404).json({ error: 'Writing not found' });
       }
       
-      res.json(rows[0]);
+      res.status(200).json(rows[0]);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      console.error('Database error:', error);
+      res.status(500).json({ 
+        error: 'Database connection failed',
+        message: error.message 
+      });
     }
+  } else {
+    res.status(405).json({ error: 'Method not allowed' });
   }
 };

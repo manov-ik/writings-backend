@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "api/writings/index.js": {
+      "maxDuration": 10
+    },
+    "api/writings/[id].js": {
+      "maxDuration": 10
+    }
+  }
+}
