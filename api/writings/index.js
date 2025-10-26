@@ -1,8 +1,17 @@
 const { Pool } = require('pg');
 
-const pool = new Pool({
-  connectionString: process.env.NEON_DATABASE_URL,
-});
+// Initialize pool with error handling
+let pool;
+try {
+  pool = new Pool({
+    connectionString: process.env.NEON_DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
+} catch (error) {
+  console.error('Failed to create database pool:', error);
+}
 
 module.exports = async (req, res) => {
   // Set CORS headers - more comprehensive
@@ -19,6 +28,14 @@ module.exports = async (req, res) => {
 
   if (req.method === 'GET') {
     try {
+      // Check if pool is initialized
+      if (!pool) {
+        return res.status(500).json({ 
+          error: 'Database not initialized',
+          message: 'Database connection pool failed to initialize'
+        });
+      }
+
       const { rows } = await pool.query(`
         SELECT * FROM writings 
         WHERE published = true 
@@ -35,7 +52,8 @@ module.exports = async (req, res) => {
       console.error('Database error:', error);
       res.status(500).json({ 
         error: 'Database connection failed',
-        message: error.message 
+        message: error.message,
+        details: error.detail || 'No additional details'
       });
     }
   } else {
