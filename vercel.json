@@ -3,7 +3,7 @@
     "api/writings/index.js": {
       "maxDuration": 10
     },
-    "api/writings/[id].js": {
+    "api/writings/slug/[slug].js": {
       "maxDuration": 10
     }
   },
