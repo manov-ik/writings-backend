@@ -1,62 +1,55 @@
 const { Pool } = require('pg');
 
-// Initialize pool with error handling
-let pool;
-try {
+// Reuse pool across invocations (Vercel optimization)
+let pool = global.pgPool;
+
+if (!pool) {
   pool = new Pool({
     connectionString: process.env.NEON_DATABASE_URL,
-    ssl: {
-      rejectUnauthorized: false
-    }
+    ssl: { rejectUnauthorized: false }
   });
-} catch (error) {
-  console.error('Failed to create database pool:', error);
+  global.pgPool = pool;
 }
 
 module.exports = async (req, res) => {
-  // Set CORS headers - more comprehensive
+  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Access-Control-Max-Age', '86400');
 
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+  // Preflight
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  if (req.method === 'GET') {
-    try {
-      // Check if pool is initialized
-      if (!pool) {
-        return res.status(500).json({ 
-          error: 'Database not initialized',
-          message: 'Database connection pool failed to initialize'
-        });
-      }
+  try {
+    const { rows } = await pool.query(`
+      SELECT title, excerpt, read_time, category, slug, published, order_index, created_at
+      FROM writings
+      WHERE published = true
+      ORDER BY order_index ASC, created_at DESC
+      LIMIT 100
+    `);
 
-      const { rows } = await pool.query(`
-        SELECT * FROM writings 
-        WHERE published = true 
-        ORDER BY order_index ASC, created_at DESC
-      `);
-      
-      res.status(200).json({ 
-        writings: rows, 
-        total: rows.length, 
-        page: 1, 
-        limit: 100 
-      });
-    } catch (error) {
-      console.error('Database error:', error);
-      res.status(500).json({ 
-        error: 'Database connection failed',
-        message: error.message,
-        details: error.detail || 'No additional details'
-      });
-    }
-  } else {
-    res.status(405).json({ error: 'Method not allowed' });
+    // Cache for 1 min (CDN), 30 sec stale (very safe)
+    res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=30");
+
+    res.status(200).json({
+      writings: rows,
+      total: rows.length,
+      page: 1,
+      limit: 100
+    });
+
+  } catch (error) {
+    console.error("Database error:", error);
+    res.status(500).json({
+      error: "Database connection failed",
+      message: error.message,
+      details: error.detail || null
+    });
   }
 };
