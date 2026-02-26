@@ -5,6 +5,12 @@
     },
     "api/writings/slug/[slug].js": {
       "maxDuration": 10
+    },
+    "api/projects/index.js": {
+      "maxDuration": 10
+    },
+    "api/projects/slug/[slug].js": {
+      "maxDuration": 10
     }
   },
   "headers": [
