@@ -26,6 +26,7 @@ module.exports = async (req, res) => {
   try {
     const { rows } = await pool.query(`
       SELECT 
+        id,
         title, 
         excerpt, 
         slug,
