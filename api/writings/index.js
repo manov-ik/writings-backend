@@ -17,8 +17,8 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Access-Control-Max-Age', '86400');
 
-  // Cache for speed
-  res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=600");
+  // Let the frontend (sessionStorage) handle caching — don't cache at CDN level
+  res.setHeader('Cache-Control', 'private, no-store');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
