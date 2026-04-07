@@ -24,6 +24,14 @@ module.exports = async (req, res) => {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    // Get total count for pagination metadata
+    const countResult = await pool.query('SELECT COUNT(*) FROM writings WHERE published = true');
+    const total = parseInt(countResult.rows[0].count);
+
     const { rows } = await pool.query(`
       SELECT 
         id,
@@ -36,15 +44,15 @@ module.exports = async (req, res) => {
         created_at 
       FROM writings 
       WHERE published = true 
-      ORDER BY order_index ASC, created_at DESC
-      LIMIT 100
-    `);
+      ORDER BY order_index DESC, created_at DESC
+      LIMIT $1 OFFSET $2
+    `, [limit, offset]);
 
     res.status(200).json({
       writings: rows,
-      total: rows.length,
-      page: 1,
-      limit: 100
+      total,
+      page,
+      limit
     });
 
   } catch (error) {
